@@ -4,11 +4,14 @@ import { EditorView } from '@codemirror/view';
 
 import * as collab from '@codemirror/collab';
 
+import Automerge from 'automerge';
+
 import { CodeMirror } from './editor';
+import { DocSet, Connection } from './sync';
 import { expose } from './infra/dev';
 
 
-expose({CodeMirror, EditorState, EditorView, collab});
+expose({CodeMirror, EditorState, EditorView, collab, Automerge, DocSet});
 
 
 /**
@@ -81,4 +84,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     expose({CodeMirror, ChangeSet, cm1, cm2, peers, collab});
+
+    var ds1 = new DocSet, d = ds1.createDoc('1'),
+        ds2 = new DocSet;
+    ds2.createDoc('1');
+    ds1.setDoc('1', Automerge.change(d, d => d.l = []));
+
+    var c1 = new Connection(ds1), c2 = new Connection(ds2);
+    c1.on('data', msg => c2.data(msg));
+    c2.on('data', msg => c1.data(msg));
+
+    expose({ds1, ds2, c1, c2, d});
 });
